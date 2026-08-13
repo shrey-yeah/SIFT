@@ -1,0 +1,23 @@
+#vector store
+chromadb
+
+#backend
+fastapi
+uvicorn[standard]
+pydantic
+pydantic-setting
+python-dotenv
+
+#frontend
+streamlit
+
+#rag stuff
+langchain
+langchain-community
+langchain-text-spllitters
+langchain-embeddings
+langchain-chroma
+langchain-openai
+
+
+
