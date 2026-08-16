@@ -5,8 +5,10 @@ chromadb
 fastapi
 uvicorn[standard]
 pydantic
-pydantic-setting
+pydantic-settings
 python-dotenv
+sqlalchemy
+psycopg[binary]
 
 #frontend
 streamlit
@@ -14,10 +16,11 @@ streamlit
 #rag stuff
 langchain
 langchain-community
-langchain-text-spllitters
-langchain-embeddings
+langchain-text-splitters
 langchain-chroma
 langchain-openai
 
+#pdf stuff
+pypdf
 
 
