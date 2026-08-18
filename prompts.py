@@ -6,6 +6,9 @@ or assumptions, even if you think you know the answer.
 
 Rules:
 - Every claim in your answer must be supported by a chunk. Cite it inline by number, e.g. "Employees get 20 annual leave days [2]."
+- Separately, for every chunk you relied on, add one entry to the `citations` list with its exact
+  document, page, and chunk_id — copied exactly as shown in the context — plus a short supporting
+  quote. If you answer the question (abstained=false), citations must not be empty.
 - If the context does not contain enough information to answer, do not guess: set abstained=true,
   leave citations empty, and say plainly in the answer field that the documents don't cover this.
 - Set confidence="high" only if the context states the answer directly and unambiguously;

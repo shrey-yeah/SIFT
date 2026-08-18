@@ -11,4 +11,5 @@ while True:
     print()
     print("Answer:", answer.answer)
     print("Confidence:", answer.confidence)
+    print("citations" , answer.citations)
     print()
