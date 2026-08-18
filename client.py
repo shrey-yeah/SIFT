@@ -1,4 +1,5 @@
 from openai import OpenAI
+import openai
 
 from prompts import SYSTEM_PROMPT, build_user_prompt
 from schema import Answer, Citation
@@ -43,40 +44,73 @@ def validate_citations(citations, metadatas):
     return valid
 
 
-def generate_answer(question):
-
-    documents, metadatas, distances = retrieve(question)
-
-    best_distance = min(distances)
-    if best_distance > ABSTAIN_THRESHOLD:
-        print(f"Abstained: closest match was too weak (distance={best_distance:.2f} > threshold={ABSTAIN_THRESHOLD}).")
-        return Answer(
-            answer="I couldn't find anything in the documents that answers this question.",
-            confidence="low",
-            citations=[],
-            caveats=[f"Best retrieval distance was {best_distance:.2f}, above the {ABSTAIN_THRESHOLD} threshold."],
-            abstained=True,
-        )
-
-    user_prompt = build_user_prompt(question, documents, metadatas)
-    response  = client.chat.completions.parse (
-        model="gpt-4o-mini",
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": user_prompt}         
-        ],
-        response_format=Answer
+def error_answer(message):
+    print(f"ERROR: {message}")
+    return Answer(
+        answer=message,
+        confidence="low",
+        citations=[],
+        caveats=[message],
+        abstained=True,
     )
-    msg = response.choices[0].message
-    msg.parsed.citations = validate_citations(msg.parsed.citations, metadatas)
 
-    if msg.parsed.abstained:
-        print("Abstained from answering the question. The documents don't cover this.")
-    if msg.parsed.caveats:
-        print("Caveats:", msg.parsed.caveats)
-    if msg.parsed.citations:
-        print("Citations:")
-        for citation in msg.parsed.citations:
-            print(f"- Document: {citation.document}, Page: {citation.page}, Quote: {citation.quote}, Chunk ID: {citation.chunk_id}")
 
-    return msg.parsed
+def generate_answer(question):
+    try: 
+
+        documents, metadatas, distances = retrieve(question)
+
+        best_distance = min(distances)
+        if best_distance > ABSTAIN_THRESHOLD:
+            print(f"Abstained: closest match was too weak (distance={best_distance:.2f} > threshold={ABSTAIN_THRESHOLD}).")
+            return Answer(
+                answer="I couldn't find anything in the documents that answers this question.",
+                confidence="low",
+                citations=[],
+                caveats=[f"Best retrieval distance was {best_distance:.2f}, above the {ABSTAIN_THRESHOLD} threshold."],
+                abstained=True,
+            )
+
+        user_prompt = build_user_prompt(question, documents, metadatas)
+        response  = client.chat.completions.parse (
+            model="gpt-4o-mini",
+            temperature=0,
+            seed=1234,
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": user_prompt}         
+            ],
+            response_format=Answer
+        )
+        print(f"Tokens: prompt={response.usage.prompt_tokens}, completion={response.usage.completion_tokens} | fingerprint={response.system_fingerprint}")
+        msg = response.choices[0].message
+        msg.parsed.citations = validate_citations(msg.parsed.citations, metadatas)
+
+        if msg.parsed.abstained:
+            print("Abstained from answering the question. The documents don't cover this.")
+        if msg.parsed.caveats:
+            print("Caveats:", msg.parsed.caveats)
+        if msg.parsed.citations:
+            print("Citations:")
+            for citation in msg.parsed.citations:
+                print(f"- Document: {citation.document}, Page: {citation.page}, Quote: {citation.quote}, Chunk ID: {citation.chunk_id}")
+
+        return msg.parsed
+
+    except openai.AuthenticationError:
+        return error_answer("The AI service isn't configured correctly — check OPENAI_API_KEY in .env.")
+    except openai.RateLimitError as e:
+        if e.body and e.body.get("error", {}).get("code") == "insufficient_quota":
+            return error_answer("The OpenAI account has no remaining credits/quota.")
+        return error_answer("Too many requests right now — please wait a moment and try again.")
+    #connection error
+    except openai.APIConnectionError:
+        return error_answer("The AI service is unreachable right now (network issue).")
+    except openai.APITimeoutError:
+        return error_answer("The AI service took too long to respond — please try again.")
+    except openai.BadRequestError as e:
+        return error_answer(f"Internal error generating the answer: {e}")
+    except openai.APIStatusError as e:
+        return error_answer(f"The AI service returned an unexpected error (status {e.status_code}).")
+
+

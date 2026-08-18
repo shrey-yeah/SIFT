@@ -31,3 +31,7 @@ results = collection.query(
 )
 
 print(results["documents"], results["metadatas"])
+
+for q in ['how many annual leave days do employees get?', 'what is the weather on mars today?', 'casual leave']:
+    r = collection.query(query_texts=[q], n_results=3)
+    print(q, '→', r['distances'][0])

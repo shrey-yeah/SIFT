@@ -6,3 +6,6 @@ env/
 venv/
 
 PROJECT_PLAN.md
+project.md
+__pycache__
+
